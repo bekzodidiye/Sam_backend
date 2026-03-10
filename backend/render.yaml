@@ -27,7 +27,7 @@ databases:
   - name: sam-brend-db
     plan: free
 
+redises:
   - name: sam-brend-redis
-    type: redis
     plan: free
-    ipAllowList: [] # Allow only internal traffic if possible
+    ipAllowList: []
