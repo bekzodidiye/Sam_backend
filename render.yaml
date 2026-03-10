@@ -22,11 +22,15 @@ services:
           type: redis
           name: sam-brend-redis
           property: connectionString
-      - key: DJANGO_SUPERUSER_USERNAME
-        value: admin
+      - key: DJANGO_SUPERUSER_PHONE
+        value: "998901234567"
       - key: DJANGO_SUPERUSER_PASSWORD
         generateValue: true
-      - key: DJANGO_SUPERUSER_EMAIL
+      - key: DJANGO_SUPERUSER_FIRST_NAME
+        value: Admin
+      - key: DJANGO_SUPERUSER_LAST_NAME
+        value: User
+      - key: EMAIL_ADDRESS
         value: EMAIL_ADDRESS
   - type: redis
     name: sam-brend-redis
