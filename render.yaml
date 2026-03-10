@@ -27,7 +27,7 @@ services:
       - key: DJANGO_SUPERUSER_PASSWORD
         generateValue: true
       - key: DJANGO_SUPERUSER_EMAIL
-        value: admin@example.com
+        value: EMAIL_ADDRESS
   - type: redis
     name: sam-brend-redis
     plan: free
