@@ -22,12 +22,11 @@ services:
           type: redis
           name: sam-brend-redis
           property: connectionString
-
-databases:
-  - name: sam-brend-db
-    plan: free
-
-redises:
-  - name: sam-brend-redis
+  - type: redis
+    name: sam-brend-redis
     plan: free
     ipAllowList: []
+
+database:
+  name: sam-brend-db
+  plan: free
