@@ -22,6 +22,12 @@ services:
           type: redis
           name: sam-brend-redis
           property: connectionString
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: admin
+      - key: DJANGO_SUPERUSER_PASSWORD
+        generateValue: true
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: admin@example.com
   - type: redis
     name: sam-brend-redis
     plan: free
