@@ -26,7 +26,3 @@ services:
     name: sam-brend-redis
     plan: free
     ipAllowList: []
-
-database:
-  name: sam-brend-db
-  plan: free
