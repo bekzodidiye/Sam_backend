@@ -6,8 +6,9 @@ class UserManager(BaseUserManager):
     def create_user(self, phone, password=None, **extra_fields):
         if not phone:
             raise ValueError('The Phone number must be set')
-        # Normalize phone: extract only digits
-        normalized_phone = ''.join(filter(str.isdigit, str(phone)))
+        # Normalize phone using utils
+        from api_v1.utils import normalize_phone
+        normalized_phone = normalize_phone(phone)
         user = self.model(phone=normalized_phone, **extra_fields)
         user.set_password(password)
         if password:
@@ -50,6 +51,7 @@ class User(AbstractUser):
     achievements = models.JSONField(default=list, blank=True)
     league_history = models.JSONField(default=list, blank=True)
     plain_password = models.CharField(max_length=128, null=True, blank=True)
+    nickname = models.CharField(max_length=50, unique=True, null=True, blank=True)
 
     objects = UserManager()
 

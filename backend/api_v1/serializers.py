@@ -22,7 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'phone', 'firstName', 'lastName', 'role', 'isApproved', 
+        fields = ('id', 'phone', 'nickname', 'firstName', 'lastName', 'role', 'isApproved', 
                   'password', 'photo', 'league', 'inventory', 'workingHours', 'department', 
                   'workLocation', 'workRadius', 'workType', 'achievements', 'leagueHistory', 'createdAt')
 
@@ -44,7 +44,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('phone', 'password', 'first_name', 'last_name', 'firstName', 'lastName', 'role')
+        fields = ('phone', 'nickname', 'password', 'first_name', 'last_name', 'firstName', 'lastName', 'role')
 
     def create(self, validated_data):
         # Prefer snake_case if available, otherwise use camelCase source
@@ -52,15 +52,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         last_name = validated_data.get('last_name', '')
         
         # Normalize phone
+        from .utils import normalize_phone
         phone = validated_data['phone']
-        normalized_phone = ''.join(filter(str.isdigit, phone))
+        normalized_phone = normalize_phone(phone)
         
         user = User.objects.create_user(
             phone=normalized_phone,
             password=validated_data['password'],
             first_name=first_name,
             last_name=last_name,
-            role=validated_data.get('role', 'operator')
+            role=validated_data.get('role', 'operator'),
+            nickname=validated_data.get('nickname')
         )
         return user
 
@@ -114,29 +116,18 @@ class SaleSerializer(serializers.ModelSerializer):
         return ret
 
     def create(self, validated_data):
+        from .services import create_sale
         company_name = validated_data.pop('company')
         tariff_name = validated_data.pop('tariff')
-        
-        company_obj, _ = Company.objects.get_or_create(name=company_name)
-        tariff_obj, _ = Tariff.objects.get_or_create(company=company_obj, name=tariff_name)
-        
-        return Sale.objects.create(company=company_obj, tariff=tariff_obj, **validated_data)
+        # user will be passed via serializer.save(user=...)
+        user = validated_data.pop('user')
+        return create_sale(user=user, company_name=company_name, tariff_name=tariff_name, **validated_data)
         
     def update(self, instance, validated_data):
-        if 'company' in validated_data:
-            company_name = validated_data.pop('company')
-            company_obj, _ = Company.objects.get_or_create(name=company_name)
-            instance.company = company_obj
-            
-        if 'tariff' in validated_data:
-            tariff_name = validated_data.pop('tariff')
-            tariff_obj, _ = Tariff.objects.get_or_create(company=instance.company, name=tariff_name)
-            instance.tariff = tariff_obj
-            
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
+        from .services import update_sale
+        company_name = validated_data.pop('company', None)
+        tariff_name = validated_data.pop('tariff', None)
+        return update_sale(sale=instance, company_name=company_name, tariff_name=tariff_name, **validated_data)
 
 class DailyReportSerializer(serializers.ModelSerializer):
     userId = serializers.CharField(source='user.id', read_only=True)
@@ -185,15 +176,10 @@ class TariffSerializer(serializers.ModelSerializer):
         return ret
 
     def create(self, validated_data):
+        from .services import create_tariff
         company_name = validated_data.pop('company')
-        company_obj, _ = Company.objects.get_or_create(name=company_name)
-        
-        tariff_obj, _ = Tariff.objects.get_or_create(
-            company=company_obj, 
-            name=validated_data.get('name'),
-            defaults=validated_data
-        )
-        return tariff_obj
+        name = validated_data.pop('name')
+        return create_tariff(company_name=company_name, name=name, **validated_data)
 
 class MonthlyTargetSerializer(serializers.ModelSerializer):
     officeCounts = serializers.JSONField(source='office_counts', required=False)
@@ -238,28 +224,5 @@ class SalesLinkSerializer(serializers.ModelSerializer):
 
 class NormalizedTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        # Normalize phone before authentication
-        username_field = self.username_field if hasattr(self, 'username_field') else get_user_model().USERNAME_FIELD
-        if username_field in attrs:
-            phone_input = str(attrs[username_field])
-            normalized_input = ''.join(filter(str.isdigit, phone_input))
-            
-            # Legacy support: try to find user even if DB has symbols but front stripped them
-            user_model = get_user_model()
-            # 1. Try exact match
-            user = user_model.objects.filter(**{username_field: normalized_input}).first()
-            if not user:
-                # 2. Try adding '+' if missing
-                user = user_model.objects.filter(**{username_field: f"+{normalized_input}"}).first()
-            if not user:
-                # 3. Try to find any user whose phone CONTAINS the normalized input
-                # This handles cases like spaces or parentheses in DB
-                user = user_model.objects.filter(**{f"{username_field}__icontains": normalized_input}).first()
-            
-            if user:
-                # Provide the DB's EXACT string to ensure authenticate() succeeds
-                attrs[username_field] = getattr(user, username_field)
-            else:
-                attrs[username_field] = normalized_input
-                
+        # Validation is now cleanly handled by apps.backends.PhoneOrNicknameBackend
         return super().validate(attrs)

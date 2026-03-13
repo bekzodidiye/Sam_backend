@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from apps.models import Sale, CheckIn, Message, DailyReport, User, Rule, MonthlyTarget, Tariff, SalesLink
-from .ws_utils import broadcast_event
+from .notifications import broadcast_event
 
 @receiver(post_save, sender=Sale)
 def broadcast_sale(sender, instance, created, **kwargs):

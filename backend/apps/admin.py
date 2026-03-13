@@ -6,13 +6,13 @@ from .models import User, CheckIn, Sale, Message, Rule, MonthlyTarget, Tariff, D
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     model = User
-    list_display = ('phone', 'first_name', 'last_name', 'role', 'is_approved', 'is_staff')
+    list_display = ('phone', 'nickname', 'first_name', 'last_name', 'role', 'is_approved', 'is_staff')
     list_filter = ('role', 'is_approved', 'is_staff', 'is_superuser')
     
     # UserAdmin by default uses 'username'. We must override these completely.
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
-        (_('Personal info'), {'fields': ('first_name', 'last_name', 'email', 'avatar', 'role', 'league', 'achievements')}),
+        (_('Personal info'), {'fields': ('nickname', 'first_name', 'last_name', 'email', 'avatar', 'role', 'league', 'achievements')}),
         (_('Permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'is_approved', 'groups', 'user_permissions'),
         }),
@@ -22,7 +22,7 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('phone', 'password', 'first_name', 'last_name', 'email', 'role'),
+            'fields': ('phone', 'nickname', 'password', 'first_name', 'last_name', 'email', 'role'),
         }),
     )
     
