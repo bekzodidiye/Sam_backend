@@ -34,8 +34,8 @@ class User(AbstractUser):
         ('bronze', 'Bronze'),
     )
     
-    username = None
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='operator')
     is_approved = models.BooleanField(default=False)
@@ -53,8 +53,8 @@ class User(AbstractUser):
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'phone'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['phone', 'first_name', 'last_name']
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.phone})"

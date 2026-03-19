@@ -41,15 +41,17 @@ class RegisterSerializer(serializers.ModelSerializer):
     firstName = serializers.CharField(source='first_name', required=False, write_only=True)
     lastName = serializers.CharField(source='last_name', required=False, write_only=True)
     password = serializers.CharField(write_only=True)
+    nickname = serializers.CharField(required=False, write_only=True)
     
     class Meta:
         model = User
-        fields = ('phone', 'password', 'first_name', 'last_name', 'firstName', 'lastName', 'role')
+        fields = ('phone', 'username', 'nickname', 'password', 'first_name', 'last_name', 'firstName', 'lastName', 'role')
 
     def create(self, validated_data):
         # Prefer snake_case if available, otherwise use camelCase source
         first_name = validated_data.get('first_name', '')
         last_name = validated_data.get('last_name', '')
+        username = validated_data.get('nickname', validated_data.get('username'))
         
         # Normalize phone
         phone = validated_data['phone']
@@ -57,6 +59,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         
         user = User.objects.create_user(
             phone=normalized_phone,
+            username=username,
             password=validated_data['password'],
             first_name=first_name,
             last_name=last_name,
@@ -238,28 +241,29 @@ class SalesLinkSerializer(serializers.ModelSerializer):
 
 class NormalizedTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        # Normalize phone before authentication
-        username_field = self.username_field if hasattr(self, 'username_field') else get_user_model().USERNAME_FIELD
-        if username_field in attrs:
-            phone_input = str(attrs[username_field])
-            normalized_input = ''.join(filter(str.isdigit, phone_input))
+        user_model = get_user_model()
+        username_field = user_model.USERNAME_FIELD # 'username'
+        
+        # Accept identifier from either the current field or common keys
+        identifier = str(attrs.get(username_field, '') or attrs.get('phone', '') or attrs.get('username', ''))
+        
+        if identifier:
+            # 1. Try finding by username directly
+            user = user_model.objects.filter(username=identifier).first()
             
-            # Legacy support: try to find user even if DB has symbols but front stripped them
-            user_model = get_user_model()
-            # 1. Try exact match
-            user = user_model.objects.filter(**{username_field: normalized_input}).first()
+            # 2. Try finding by phone if not found by username
             if not user:
-                # 2. Try adding '+' if missing
-                user = user_model.objects.filter(**{username_field: f"+{normalized_input}"}).first()
-            if not user:
-                # 3. Try to find any user whose phone CONTAINS the normalized input
-                # This handles cases like spaces or parentheses in DB
-                user = user_model.objects.filter(**{f"{username_field}__icontains": normalized_input}).first()
+                normalized_phone = ''.join(filter(str.isdigit, identifier))
+                if normalized_phone:
+                    user = user_model.objects.filter(phone=normalized_phone).first()
+                    if not user:
+                        user = user_model.objects.filter(phone=f"+{normalized_phone}").first()
             
             if user:
-                # Provide the DB's EXACT string to ensure authenticate() succeeds
-                attrs[username_field] = getattr(user, username_field)
-            else:
-                attrs[username_field] = normalized_input
+                # Resolve to the actual username for authentication
+                attrs[username_field] = user.username
+                # Ensure the 'username' key exists as SimpleJWT often defaults to it
+                if username_field != 'username':
+                    attrs['username'] = user.username
                 
         return super().validate(attrs)
