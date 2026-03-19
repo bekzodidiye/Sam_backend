@@ -56,7 +56,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / '..' / 'frontent'],
+        'DIRS': [BASE_DIR.parent / 'frontent'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -98,12 +98,22 @@ else:
     }
 
 
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+
 # Database
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3')
-    )
-}
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default='sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3')
+        )
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -123,15 +133,16 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tashkent'
 USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [
-    BASE_DIR / '..' / 'frontent',
-]
+_frontend_dir = BASE_DIR.parent / 'frontent'
+STATICFILES_DIRS = []
+if _frontend_dir.exists():
+    STATICFILES_DIRS.append(_frontend_dir)
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (Uploaded images, videos, etc.)
@@ -171,7 +182,11 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True # In production, specify frontend origin
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if os.getenv('CORS_ALLOWED_ORIGINS') else []
-if CORS_ALLOWED_ORIGINS:
-    CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3003",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]

@@ -1,6 +1,8 @@
 import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.utils.timezone import now
+from api_v1.utils import get_uz_now
 
 class UserManager(BaseUserManager):
     def create_user(self, phone, password=None, **extra_fields):
@@ -34,8 +36,8 @@ class User(AbstractUser):
         ('bronze', 'Bronze'),
     )
     
-    username = None
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='operator')
     is_approved = models.BooleanField(default=False)
@@ -65,7 +67,7 @@ class CheckIn(models.Model):
     location_lat = models.DecimalField(max_digits=9, decimal_places=6)
     location_lng = models.DecimalField(max_digits=9, decimal_places=6)
     photo = models.ImageField(upload_to='checkins/', null=True, blank=True)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(default=get_uz_now)
     check_out_time = models.DateTimeField(null=True, blank=True)
     working_hours_snapshot = models.JSONField(null=True, blank=True)
 
@@ -81,7 +83,7 @@ class Sale(models.Model):
     count = models.IntegerField(default=1)
     bonus = models.IntegerField(default=0)
     tariff = models.ForeignKey("Tariff", on_delete=models.CASCADE, related_name='sales')
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(default=get_uz_now)
     timestamp = models.DateTimeField(auto_now_add=True) 
 
     def __str__(self):
@@ -118,7 +120,7 @@ class MonthlyTarget(models.Model):
 
 class DailyReport(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports')
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField(default=get_uz_now)
     summary = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     location_lat = models.FloatField(null=True, blank=True)

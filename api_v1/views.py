@@ -78,8 +78,8 @@ class UserViewSet(viewsets.ModelViewSet):
         broadcast_data_update("USER_UPDATED", UserSerializer(user).data)
         return Response({'status': 'approved'})
 
-@decorators.api_view(['POST'])
 @decorators.permission_classes([permissions.AllowAny])
+@decorators.api_view(['POST'])
 def register_view(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
@@ -350,5 +350,7 @@ class SalesLinkViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.delete()
         broadcast_data_update("LINK_UPDATED", group="everyone")
+@decorators.permission_classes([permissions.AllowAny])
+@decorators.api_view(['GET'])
 def index_view(request):
     return render(request, 'index.html')

@@ -6,12 +6,12 @@ from .models import User, CheckIn, Sale, Message, Rule, MonthlyTarget, Tariff, D
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     model = User
-    list_display = ('phone', 'first_name', 'last_name', 'role', 'is_approved', 'is_staff')
+    list_display = ('username', 'phone', 'first_name', 'last_name', 'role', 'is_approved', 'is_staff')
     list_filter = ('role', 'is_approved', 'is_staff', 'is_superuser')
     
     # UserAdmin by default uses 'username'. We must override these completely.
     fieldsets = (
-        (None, {'fields': ('phone', 'password')}),
+        (None, {'fields': ('username', 'phone', 'password')}),
         (_('Personal info'), {'fields': ('first_name', 'last_name', 'email', 'avatar', 'role', 'league', 'achievements')}),
         (_('Permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'is_approved', 'groups', 'user_permissions'),
@@ -22,19 +22,34 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('phone', 'password', 'first_name', 'last_name', 'email', 'role'),
+            'fields': ('username', 'phone', 'password', 'first_name', 'last_name', 'email', 'role'),
         }),
     )
     
-    search_fields = ('phone', 'first_name', 'last_name', 'email')
-    ordering = ('phone',)
+    search_fields = ('username', 'phone', 'first_name', 'last_name', 'email')
+    ordering = ('username',)
 
-admin.site.register(CheckIn)
-admin.site.register(Sale)
+@admin.register(CheckIn)
+class CheckInAdmin(admin.ModelAdmin):
+    list_display = ('user', 'date', 'timestamp', 'check_out_time')
+    list_filter = ('date', 'user')
+    date_hierarchy = 'date'
+
+@admin.register(Sale)
+class SaleAdmin(admin.ModelAdmin):
+    list_display = ('user', 'company', 'count', 'bonus', 'tariff', 'date')
+    list_filter = ('date', 'company', 'user')
+    date_hierarchy = 'date'
+
+@admin.register(DailyReport)
+class DailyReportAdmin(admin.ModelAdmin):
+    list_display = ('user', 'date', 'timestamp')
+    list_filter = ('date', 'user')
+    date_hierarchy = 'date'
+
 admin.site.register(Message)
 admin.site.register(Rule)
 admin.site.register(MonthlyTarget)
 admin.site.register(Tariff)
-admin.site.register(DailyReport)
 admin.site.register(SalesLink)
 admin.site.register(Company)
