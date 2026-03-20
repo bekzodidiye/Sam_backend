@@ -175,3 +175,12 @@ CORS_ALLOW_ALL_ORIGINS = True # In production, specify frontend origin
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if os.getenv('CORS_ALLOWED_ORIGINS') else []
 if CORS_ALLOWED_ORIGINS:
     CORS_ALLOW_ALL_ORIGINS = False
+
+# CSRF Configuration
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://*.onrender.com,http://localhost:3003,http://127.0.0.1:8003').split(',')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+if not DEBUG:
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    # SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
