@@ -82,7 +82,7 @@ ASGI_APPLICATION = 'config.asgi.application'
 # For production (and for reliable multi-process/multi-worker setups),
 # use Redis. Requires: pip install channels_redis
 # Make sure Redis is running: sudo systemctl start redis
-REDIS_URL = os.getenv('REDIS_URL')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://red-d6nqbbkr85hc73fu586g:6379')
 if REDIS_URL:
     CHANNEL_LAYERS = {
         'default': {
@@ -101,7 +101,7 @@ else:
 # Database
 DATABASES = {
     'default': dj_database_url.config(
-        default='sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3')
+        default='postgresql://sam_brend_db_user:pdPJVmTl71AhTo3gtRIDBWDJBxJIJaPz@dpg-d6nqbbsr85hc73fu588g-a.oregon-postgres.render.com/sam_brend_db'
     )
 }
 
@@ -140,6 +140,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': REDIS_URL,
+    }
+}
 
 # Custom User Model
 AUTH_USER_MODEL = 'apps.User'
