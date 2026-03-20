@@ -56,7 +56,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / '..' / 'frontent'],
+        'DIRS': [BASE_DIR / '..' / 'frontent'] if (BASE_DIR / '..' / 'frontent').exists() else [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -131,7 +131,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / '..' / 'frontent',
-]
+] if (BASE_DIR / '..' / 'frontent').exists() else []
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (Uploaded images, videos, etc.)
