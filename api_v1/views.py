@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.shortcuts import render
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.http import JsonResponse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from apps.models import CheckIn, Sale, Message, Rule, MonthlyTarget, Tariff, DailyReport, SalesLink, OperatorRating
@@ -425,4 +426,8 @@ class SalesLinkViewSet(viewsets.ModelViewSet):
         instance.delete()
         broadcast_data_update("LINK_UPDATED", group="everyone")
 def index_view(request):
-    return render(request, 'index.html')
+    return JsonResponse({
+        "status": "online",
+        "message": "Sam Brend Backend API is running.",
+        "admin_panel": "/admin/"
+    })
