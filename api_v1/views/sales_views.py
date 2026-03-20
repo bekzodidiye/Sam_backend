@@ -2,11 +2,12 @@ from rest_framework import viewsets, permissions, status, decorators
 from rest_framework.response import Response
 from apps.models import Sale, SalesLink
 from ..serializers import SaleSerializer, SalesLinkSerializer, UserSerializer
-from .base import IsManager, broadcast_data_update
+from .base import IsManager, broadcast_data_update, StandardResultsSetPagination
 
 class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
+    pagination_class = StandardResultsSetPagination
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -21,6 +22,10 @@ class SaleViewSet(viewsets.ModelViewSet):
         
         user.inventory = inventory
         user.save()
+        
+        # Real-time updates
+        broadcast_data_update("NEW_SALE", serializer.data)
+        broadcast_data_update("USER_UPDATED", data=UserSerializer(user).data)
 
     def perform_update(self, serializer):
         old_instance = self.get_object()
@@ -39,6 +44,10 @@ class SaleViewSet(viewsets.ModelViewSet):
         user.inventory = inventory
         user.save()
 
+        # Real-time updates
+        broadcast_data_update("NEW_SALE", serializer.data)
+        broadcast_data_update("USER_UPDATED", data=UserSerializer(user).data)
+
     def perform_destroy(self, instance):
         user = instance.user
         total_to_restore = (instance.count or 0) + (instance.bonus or 0)
@@ -51,6 +60,10 @@ class SaleViewSet(viewsets.ModelViewSet):
         user.save()
         
         instance.delete()
+        
+        # Real-time updates
+        broadcast_data_update("NEW_SALE", {"id": instance.id})
+        broadcast_data_update("USER_UPDATED", data=UserSerializer(user).data)
 
     def get_queryset(self):
         qs = Sale.objects.select_related('user', 'company', 'tariff').only(

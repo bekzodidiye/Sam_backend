@@ -1,7 +1,13 @@
 from rest_framework import permissions
+from rest_framework.pagination import PageNumberPagination
 from django.http import JsonResponse
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
 
 class IsManager(permissions.BasePermission):
     def has_permission(self, request, view):

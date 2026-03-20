@@ -50,6 +50,10 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         user.is_approved = True
         user.save()
+        
+        # Real-time update
+        broadcast_data_update("USER_UPDATED", data=UserSerializer(user).data)
+        
         return Response({'status': 'approved'})
 
 class OperatorRatingViewSet(viewsets.ModelViewSet):

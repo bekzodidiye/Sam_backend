@@ -87,12 +87,11 @@ ASGI_APPLICATION = 'config.asgi.application'
 REDIS_URL = os.getenv('REDIS_URL')
 
 if REDIS_URL:
-    # Production or Local with Redis
     CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [REDIS_URL],
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
             },
         },
     }
@@ -171,8 +170,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50,
 }
 
 # Simple JWT Configuration

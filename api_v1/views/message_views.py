@@ -3,13 +3,16 @@ from rest_framework.response import Response
 from django.db import models
 from apps.models import Message
 from ..serializers import MessageSerializer
+from .base import broadcast_data_update
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
 
     def perform_create(self, serializer):
-        serializer.save(sender=self.request.user)
+        instance = serializer.save(sender=self.request.user)
+        # Real-time update
+        broadcast_data_update("NEW_MESSAGE", serializer.data)
 
     def get_queryset(self):
         user = self.request.user

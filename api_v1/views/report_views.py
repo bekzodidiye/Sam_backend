@@ -2,14 +2,16 @@ from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from apps.models import DailyReport, MonthlyTarget
 from ..serializers import DailyReportSerializer, MonthlyTargetSerializer
-from .base import IsManager, broadcast_data_update
+from .base import IsManager, broadcast_data_update, StandardResultsSetPagination
 
 class DailyReportViewSet(viewsets.ModelViewSet):
     queryset = DailyReport.objects.all()
     serializer_class = DailyReportSerializer
+    pagination_class = StandardResultsSetPagination
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        instance = serializer.save(user=self.request.user)
+        broadcast_data_update("NEW_REPORT", serializer.data)
 
     def perform_update(self, serializer):
         serializer.save()
@@ -45,9 +47,11 @@ class MonthlyTargetViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+        broadcast_data_update("TARGET_UPDATED", serializer.data)
 
     def perform_update(self, serializer):
         serializer.save()
+        broadcast_data_update("TARGET_UPDATED", serializer.data)
 
     def perform_destroy(self, instance):
         instance.delete()

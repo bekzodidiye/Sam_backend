@@ -20,6 +20,9 @@ class CheckInViewSet(viewsets.ModelViewSet):
             instance.save()
         
         final_serializer = self.get_serializer(instance)
+        # Real-time update
+        broadcast_data_update("NEW_CHECKIN", final_serializer.data)
+        
         headers = self.get_success_headers(final_serializer.data)
         return Response(final_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
