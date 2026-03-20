@@ -12,3 +12,5 @@ psycopg2-binary
 python-dotenv
 gunicorn
 async-timeout
+celery
+redis
