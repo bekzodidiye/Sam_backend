@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from apps.models import Sale, CheckIn, Message, DailyReport, User, Rule, MonthlyTarget, Tariff, SalesLink
+from apps.models import Sale, CheckIn, Message, DailyReport, User, Rule, MonthlyTarget, Tariff, SalesLink, OperatorRating
 from .ws_utils import broadcast_event
 
 @receiver(post_save, sender=Sale)
@@ -16,9 +16,13 @@ def broadcast_checkin(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Message)
 def broadcast_message(sender, instance, created, **kwargs):
     if created:
-        # Send to everyone or specific recipient group if you want more privacy
-        # For now, following the 'everyone' pattern used in ArrivalChecker
-        broadcast_event("NEW_MESSAGE", {"id": instance.id})
+        if instance.recipient:
+             # Direct message: notify both sender and recipient
+             broadcast_event("NEW_MESSAGE", {"id": instance.id}, group=f"user_{instance.recipient.id}")
+             broadcast_event("NEW_MESSAGE", {"id": instance.id}, group=f"user_{instance.sender.id}")
+        else:
+             # Broadcast message: notify everyone
+             broadcast_event("NEW_MESSAGE", {"id": instance.id}, group="everyone")
 
 @receiver(post_save, sender=DailyReport)
 def broadcast_report(sender, instance, created, **kwargs):
@@ -51,3 +55,8 @@ def broadcast_link_update(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=Sale)
 def broadcast_sale_delete(sender, instance, **kwargs):
     broadcast_event("NEW_SALE", {"id": str(instance.id), "deleted": True})
+@receiver(post_save, sender=OperatorRating)
+def broadcast_rating_update(sender, instance, created, **kwargs):
+    # Notify the operator specifically and the everyone group for manager's dashboard refresh
+    broadcast_event("NEW_RATING", {"id": instance.id}, group="everyone")
+    broadcast_event("NEW_RATING", {"id": instance.id}, group=f"user_{instance.operator.id}")
