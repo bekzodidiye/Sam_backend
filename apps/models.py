@@ -14,8 +14,9 @@ class UserManager(BaseUserManager):
     def create_user(self, phone, password=None, **extra_fields):
         if not phone:
             raise ValueError('The Phone number must be set')
-        # Normalize phone: extract only digits
-        normalized_phone = ''.join(filter(str.isdigit, str(phone)))
+        # Normalize phone: extract only digits, but keep + at the start
+        clean_digits = ''.join(filter(str.isdigit, str(phone)))
+        normalized_phone = f'+{clean_digits}' if clean_digits else ''
         user = self.model(phone=normalized_phone, **extra_fields)
         user.set_password(password)
         if password:

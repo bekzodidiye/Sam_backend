@@ -28,6 +28,10 @@ class UserSerializer(serializers.ModelSerializer):
                   'workLocation', 'workRadius', 'workType', 'achievements', 'leagueHistory', 'createdAt')
 
     def update(self, instance, validated_data):
+        if 'phone' in validated_data:
+            clean_digits = ''.join(filter(str.isdigit, str(validated_data['phone'])))
+            validated_data['phone'] = f'+{clean_digits}' if clean_digits else ''
+            
         password = validated_data.pop('plain_password', None)
         if password:
             instance.set_password(password)
@@ -56,7 +60,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         
         # Normalize phone
         phone = validated_data['phone']
-        normalized_phone = ''.join(filter(str.isdigit, phone))
+        clean_digits = ''.join(filter(str.isdigit, str(phone)))
+        normalized_phone = f'+{clean_digits}' if clean_digits else ''
         
         user = User.objects.create_user(
             phone=normalized_phone,
