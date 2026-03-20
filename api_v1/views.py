@@ -6,12 +6,41 @@ from django.db import models
 from django.shortcuts import render
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from apps.models import CheckIn, Sale, Message, Rule, MonthlyTarget, Tariff, DailyReport, SalesLink
+from apps.models import CheckIn, Sale, Message, Rule, MonthlyTarget, Tariff, DailyReport, SalesLink, OperatorRating
 from .serializers import (UserSerializer, RegisterSerializer, CheckInSerializer, 
                           SaleSerializer, MessageSerializer, RuleSerializer, 
                           MonthlyTargetSerializer, TariffSerializer, 
                           DailyReportSerializer, SalesLinkSerializer,
+                          OperatorRatingSerializer,
                           NormalizedTokenObtainPairSerializer)
+
+class OperatorRatingViewSet(viewsets.ModelViewSet):
+    queryset = OperatorRating.objects.all()
+    serializer_class = OperatorRatingSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsManager()]
+        return [permissions.IsAuthenticated()]
+
+    def perform_create(self, serializer):
+        # Prevent double rating for the same operator on the same day
+        operator = serializer.validated_data['operator']
+        date = serializer.validated_data['date']
+        OperatorRating.objects.filter(operator=operator, date=date).delete()
+        
+        serializer.save(rated_by=self.request.user)
+        broadcast_data_update("NEW_RATING", group="everyone")
+
+    def perform_update(self, serializer):
+        serializer.save()
+        broadcast_data_update("NEW_RATING", group="everyone")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        broadcast_data_update("NEW_RATING", group="everyone")
+
+
 
 User = get_user_model()
 
@@ -134,21 +163,66 @@ class SaleViewSet(viewsets.ModelViewSet):
     serializer_class = SaleSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-        broadcast_data_update("NEW_SALE", data=serializer.data)
+        user = self.request.user
+        instance = serializer.save(user=user)
+        
+        # Update user inventory
+        inventory = dict(user.inventory or {})
+        company_name = instance.company.name
+        total_to_remove = instance.count + instance.bonus
+        
+        current_amount = inventory.get(company_name, 0)
+        inventory[company_name] = max(0, int(current_amount) - total_to_remove)
+        
+        user.inventory = inventory
+        user.save()
+        
+        broadcast_data_update("NEW_SALE", data=SaleSerializer(instance).data)
+        broadcast_data_update("USER_UPDATED", data=UserSerializer(user).data)
 
     def perform_update(self, serializer):
-        serializer.save()
-        broadcast_data_update("NEW_SALE", data=serializer.data)
+        old_instance = self.get_object()
+        old_total = old_instance.count + old_instance.bonus
+        old_company = old_instance.company.name
+        
+        instance = serializer.save()
+        new_total = instance.count + instance.bonus
+        new_company = instance.company.name
+        
+        user = instance.user
+        inventory = dict(user.inventory or {})
+        
+        # Add back old total
+        inventory[old_company] = int(inventory.get(old_company, 0)) + old_total
+        # Remove new total
+        inventory[new_company] = max(0, int(inventory.get(new_company, 0)) - new_total)
+        
+        user.inventory = inventory
+        user.save()
+        
+        broadcast_data_update("NEW_SALE", data=SaleSerializer(instance).data)
+        broadcast_data_update("USER_UPDATED", data=UserSerializer(user).data)
 
     def perform_destroy(self, instance):
+        user = instance.user
+        total_to_restore = instance.count + instance.bonus
+        company_name = instance.company.name
+        
+        inventory = dict(user.inventory or {})
+        inventory[company_name] = int(inventory.get(company_name, 0)) + total_to_restore
+        
+        user.inventory = inventory
+        user.save()
+        
         instance.delete()
         broadcast_data_update("NEW_SALE")
+        broadcast_data_update("USER_UPDATED", data=UserSerializer(user).data)
 
     def get_queryset(self):
         if self.request.user.role == 'manager':
             return Sale.objects.all()
         return Sale.objects.filter(user=self.request.user)
+
 
 class DailyReportViewSet(viewsets.ModelViewSet):
     queryset = DailyReport.objects.all()

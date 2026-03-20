@@ -2,7 +2,15 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
+from django.core.exceptions import ValidationError
+
+def validate_image_size(value):
+    filesize = value.size
+    if filesize > 10 * 1024 * 1024:
+        raise ValidationError("Rasm hajmi 10MB dan oshmasligi kerak")
+
 class UserManager(BaseUserManager):
+
     def create_user(self, phone, password=None, **extra_fields):
         if not phone:
             raise ValueError('The Phone number must be set')
@@ -39,7 +47,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='operator')
     is_approved = models.BooleanField(default=False)
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, validators=[validate_image_size])
     league = models.CharField(max_length=10, choices=LEAGUE_CHOICES, default='bronze', null=True, blank=True)
     inventory = models.JSONField(default=dict, blank=True)
     working_hours = models.JSONField(default=dict, blank=True)
@@ -64,7 +72,7 @@ class CheckIn(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     location_lat = models.DecimalField(max_digits=9, decimal_places=6)
     location_lng = models.DecimalField(max_digits=9, decimal_places=6)
-    photo = models.ImageField(upload_to='checkins/', null=True, blank=True)
+    photo = models.ImageField(upload_to='checkins/', null=True, blank=True, validators=[validate_image_size])
     date = models.DateField(auto_now_add=True)
     check_out_time = models.DateTimeField(null=True, blank=True)
     working_hours_snapshot = models.JSONField(null=True, blank=True)
@@ -129,5 +137,17 @@ class SalesLink(models.Model):
     name = models.CharField(max_length=100)
     url = models.URLField()
     mobile_url = models.URLField(null=True, blank=True)
-    image = models.ImageField(upload_to='sales_links/', null=True, blank=True)
+    image = models.ImageField(upload_to='sales_links/', null=True, blank=True, validators=[validate_image_size])
     created_at = models.DateTimeField(auto_now_add=True)
+
+class OperatorRating(models.Model):
+    operator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_ratings')
+    rated_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_ratings')
+    date = models.DateField()
+    stars = models.IntegerField() # 1 to 5
+    comment = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('operator', 'date')
+

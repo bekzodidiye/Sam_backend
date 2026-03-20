@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
-from apps.models import CheckIn, Sale, Message, Rule, MonthlyTarget, Tariff, DailyReport, SalesLink, Company
+from apps.models import CheckIn, Sale, Message, Rule, MonthlyTarget, Tariff, DailyReport, SalesLink, Company, OperatorRating
 from django.conf import settings
 
 User = get_user_model()
@@ -19,10 +19,11 @@ class UserSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(source='date_joined', read_only=True)
     photo = serializers.ImageField(source='avatar', required=False, allow_null=True)
     password = serializers.CharField(source='plain_password', required=False, allow_blank=True)
+    nickname = serializers.CharField(source='username', required=False)
 
     class Meta:
         model = User
-        fields = ('id', 'phone', 'firstName', 'lastName', 'role', 'isApproved', 
+        fields = ('id', 'phone', 'nickname', 'firstName', 'lastName', 'role', 'isApproved', 
                   'password', 'photo', 'league', 'inventory', 'workingHours', 'department', 
                   'workLocation', 'workRadius', 'workType', 'achievements', 'leagueHistory', 'createdAt')
 
@@ -146,6 +147,15 @@ class DailyReportSerializer(serializers.ModelSerializer):
     locationLat = serializers.FloatField(source='location_lat', required=False, allow_null=True)
     locationLng = serializers.FloatField(source='location_lng', required=False, allow_null=True)
     
+    def validate_photos(self, value):
+        if not isinstance(value, list):
+            return value
+        for img in value:
+            # Base64 string length check (rough estimate: 10MB file is ~13.7MB in base64)
+            if len(img) > 15 * 1024 * 1024:
+                raise serializers.ValidationError("Har bir rasm hajmi 10MB dan oshmasligi kerak")
+        return value
+    
     class Meta:
         model = DailyReport
         fields = ('id', 'userId', 'date', 'summary', 'timestamp', 'photos', 'locationLat', 'locationLng')
@@ -233,11 +243,22 @@ class SalesLinkSerializer(serializers.ModelSerializer):
             if val and isinstance(val, str) and not val.startswith(('http://', 'https://')):
                 # DRF URLField validation happens after this, so we fix it here
                 if hasattr(mutable_data, 'setlist'): # QueryDict
-                    mutable_data[field] = f'https://{val}'
+                    mutable_data.setlist(field, [f'https://{val}'])
                 else:
                     mutable_data[field] = f'https://{val}'
         
         return super().to_internal_value(mutable_data)
+
+class OperatorRatingSerializer(serializers.ModelSerializer):
+    operatorId = serializers.CharField(source='operator.id', read_only=True)
+    ratedById = serializers.CharField(source='rated_by.id', read_only=True)
+    operator_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), source='operator', write_only=True)
+    
+    class Meta:
+        model = OperatorRating
+        fields = ('id', 'operatorId', 'operator_id', 'ratedById', 'date', 'stars', 'comment', 'timestamp')
+        read_only_fields = ('ratedById', 'timestamp')
+
 
 class NormalizedTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
