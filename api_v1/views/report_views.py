@@ -10,20 +10,18 @@ class DailyReportViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-        broadcast_data_update("NEW_REPORT", data=serializer.data)
 
     def perform_update(self, serializer):
         serializer.save()
-        broadcast_data_update("NEW_REPORT", data=serializer.data)
 
     def perform_destroy(self, instance):
         instance.delete()
-        broadcast_data_update("NEW_REPORT")
 
     def get_queryset(self):
+        qs = DailyReport.objects.select_related('user')
         if self.request.user.role == 'manager':
-            return DailyReport.objects.all()
-        return DailyReport.objects.filter(user=self.request.user)
+            return qs.all()
+        return qs.filter(user=self.request.user)
 
 class MonthlyTargetViewSet(viewsets.ModelViewSet):
     queryset = MonthlyTarget.objects.all()
@@ -47,12 +45,9 @@ class MonthlyTargetViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
-        broadcast_data_update("TARGET_UPDATED", group="everyone")
 
     def perform_update(self, serializer):
         serializer.save()
-        broadcast_data_update("TARGET_UPDATED", group="everyone")
 
     def perform_destroy(self, instance):
         instance.delete()
-        broadcast_data_update("TARGET_UPDATED", group="everyone")

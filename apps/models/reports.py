@@ -35,6 +35,10 @@ class OperatorRating(models.Model):
 
     class Meta:
         unique_together = ('operator', 'date')
+        indexes = [
+            models.Index(fields=['operator', 'date']),
+            models.Index(fields=['rated_by', 'date']),
+        ]
 
     def __str__(self):
         return f"Rating for {self.operator} - {self.date}"

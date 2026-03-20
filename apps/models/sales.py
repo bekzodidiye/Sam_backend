@@ -28,8 +28,13 @@ class Sale(models.Model):
     date = models.DateField(auto_now_add=True, db_index=True)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True) 
 
-    def __str__(self):
-        return f"{self.user} - {self.company} - {self.date}"
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'date']),
+            models.Index(fields=['company', 'date']),
+            models.Index(fields=['tariff', 'date']),
+        ]
+        ordering = ['-timestamp']
 
 class SalesLink(models.Model):
     name = models.CharField(max_length=100)
