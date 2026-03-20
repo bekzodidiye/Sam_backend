@@ -37,7 +37,7 @@ class RuleViewSet(viewsets.ModelViewSet):
         cache.delete("system_rules_list")
 
 class TariffViewSet(viewsets.ModelViewSet):
-    queryset = Tariff.objects.all()
+    queryset = Tariff.objects.select_related('company').all()
     serializer_class = TariffSerializer
 
     def get_permissions(self):
@@ -45,15 +45,32 @@ class TariffViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
         return [IsManager()]
 
+    def list(self, request, *args, **kwargs):
+        cache_key = "system_tariffs_list"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+        
+        response = super().list(request, *args, **kwargs)
+        cache.set(cache_key, response.data, 3600)
+        return response
+
     def perform_create(self, serializer):
         serializer.save()
+        cache.delete("system_tariffs_list")
 
     def perform_update(self, serializer):
         serializer.save()
+        cache.delete("system_tariffs_list")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache.delete("system_tariffs_list")
 
     @decorators.action(detail=False, methods=['post'], url_path='remove')
     def remove_tariff(self, request):
         company = request.data.get('company')
         name = request.data.get('tariff') or request.data.get('name')
         Tariff.objects.filter(company__name=company, name=name).delete()
+        cache.delete("system_tariffs_list")
         return Response(status=status.HTTP_204_NO_CONTENT)

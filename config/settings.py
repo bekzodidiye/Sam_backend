@@ -82,8 +82,12 @@ ASGI_APPLICATION = 'config.asgi.application'
 # For production (and for reliable multi-process/multi-worker setups),
 # use Redis. Requires: pip install channels_redis
 # Make sure Redis is running: sudo systemctl start redis
-REDIS_URL = os.getenv('REDIS_URL', 'redis://red-d6nqbbkr85hc73fu586g:6379')
+# --- Redis & Channel Layers ---
+# --- Redis & Channel Layers ---
+REDIS_URL = os.getenv('REDIS_URL')
+
 if REDIS_URL:
+    # Production or Local with Redis
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -92,16 +96,30 @@ if REDIS_URL:
             },
         },
     }
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
+    }
 else:
+    # Local development fallback without Redis (Lightning Fast)
     CHANNEL_LAYERS = {
         'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
+    }
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
     }
 
 
 # Database
+# Use Render's DATABASE_URL in production, fallback to local SQLite for speed in development
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://sam_brend_db_user:pdPJVmTl71AhTo3gtRIDBWDJBxJIJaPz@dpg-d6nqbbsr85hc73fu588g-a.oregon-postgres.render.com/sam_brend_db'
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600
     )
 }
 
@@ -141,13 +159,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Cache Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': REDIS_URL,
-    }
-}
 
 # Custom User Model
 AUTH_USER_MODEL = 'apps.User'

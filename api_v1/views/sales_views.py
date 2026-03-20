@@ -53,7 +53,10 @@ class SaleViewSet(viewsets.ModelViewSet):
         instance.delete()
 
     def get_queryset(self):
-        qs = Sale.objects.select_related('user', 'company', 'tariff')
+        qs = Sale.objects.select_related('user', 'company', 'tariff').only(
+            'id', 'user__id', 'user__first_name', 'user__last_name', 
+            'company__name', 'count', 'bonus', 'tariff__name', 'date', 'timestamp'
+        )
         if self.request.user.role == 'manager':
             return qs.all()
         return qs.filter(user=self.request.user)
@@ -67,18 +70,12 @@ class SalesLinkViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
         return [IsManager()]
 
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
 
-    def perform_create(self, serializer):
-        serializer.save()
-        broadcast_data_update("LINK_UPDATED", group="everyone")
 
-    def perform_create(self, serializer):
-        serializer.save()
 
-    def perform_update(self, serializer):
-        serializer.save()
 
-    def perform_destroy(self, instance):
-        instance.delete()
+
+
+
+
+
