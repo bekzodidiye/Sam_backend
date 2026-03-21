@@ -7,7 +7,7 @@ class TariffSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tariff
-        fields = ('id', 'company', 'name', 'createdAt')
+        fields = ('id', 'company', 'name', 'name_uz', 'name_ru', 'name_en', 'createdAt')
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -70,7 +70,7 @@ class SalesLinkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SalesLink
-        fields = ('id', 'name', 'url', 'mobileUrl', 'image', 'createdAt')
+        fields = ('id', 'name', 'name_uz', 'name_ru', 'name_en', 'url', 'mobileUrl', 'image', 'createdAt')
 
     def validate_url(self, value):
         if value and not value.startswith(('http://', 'https://')):

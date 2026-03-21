@@ -4,5 +4,5 @@ from .user_views import UserViewSet, OperatorRatingViewSet
 from .sales_views import SaleViewSet, SalesLinkViewSet
 from .checkin_views import CheckInViewSet
 from .report_views import DailyReportViewSet, MonthlyTargetViewSet
-from .setting_views import RuleViewSet, TariffViewSet
+from .setting_views import RuleViewSet, TariffViewSet, GlobalSettingsViewSet
 from .message_views import MessageViewSet

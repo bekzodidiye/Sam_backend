@@ -16,7 +16,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ('id', 'senderId', 'senderName', 'senderRole', 'recipientId', 'recipient_id', 'text', 'isRead', 'timestamp')
+        fields = ('id', 'senderId', 'senderName', 'senderRole', 'recipientId', 'recipient_id', 'text', 'text_uz', 'text_ru', 'text_en', 'isRead', 'timestamp')
         read_only_fields = ('senderId', 'timestamp')
 
 class RuleSerializer(serializers.ModelSerializer):
@@ -25,4 +25,4 @@ class RuleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Rule
-        fields = ('id', 'content', 'createdAt', 'updatedAt')
+        fields = ('id', 'content', 'content_uz', 'content_ru', 'content_en', 'createdAt', 'updatedAt')

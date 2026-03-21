@@ -14,3 +14,4 @@ gunicorn
 async-timeout
 celery
 redis
+django-modeltranslation

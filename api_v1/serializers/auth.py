@@ -16,6 +16,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ('phone', 'username', 'nickname', 'password', 'first_name', 'last_name', 'firstName', 'lastName', 'role')
 
+    def validate_phone(self, value):
+        clean_digits = ''.join(filter(str.isdigit, str(value)))
+        normalized = f'+{clean_digits}'
+        if User.objects.filter(phone=normalized).exists():
+            raise serializers.ValidationError("Ushbu telefon raqami allaqachon ro'yxatga olingan.")
+        return value
+
+    def validate_nickname(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Ushbu login band, boshqasini tanlang.")
+        return value
+
     def create(self, validated_data):
         first_name = validated_data.get('first_name', '')
         last_name = validated_data.get('last_name', '')

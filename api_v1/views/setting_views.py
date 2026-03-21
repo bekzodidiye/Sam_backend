@@ -1,9 +1,46 @@
 from rest_framework import viewsets, permissions, status, decorators
 from rest_framework.response import Response
 from django.core.cache import cache
-from apps.models import Rule, Tariff
+from django.utils.translation import get_language
+from apps.models import Rule, Tariff, GlobalSetting
 from ..serializers import RuleSerializer, TariffSerializer
 from .base import IsManager, broadcast_data_update
+
+class GlobalSettingsViewSet(viewsets.ViewSet):
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsManager()]
+        return [permissions.IsAuthenticated()]
+
+    def list(self, request):
+        settings = GlobalSetting.get_settings()
+        return Response({
+            "id": settings.id,
+            "rating_enabled": settings.rating_enabled,
+            "updated_at": settings.updated_at
+        })
+
+    def create(self, request):
+        settings = GlobalSetting.get_settings()
+        if 'rating_enabled' in request.data:
+            settings.rating_enabled = request.data['rating_enabled']
+        settings.last_modified_by = request.user
+        settings.save()
+        
+        # Invalidate cache if there's any settings cache
+        cache.delete("global_settings")
+        
+        broadcast_data_update("SETTINGS_UPDATED", {
+            "id": settings.id,
+            "rating_enabled": settings.rating_enabled,
+            "updated_at": settings.updated_at.isoformat() if settings.updated_at else None
+        })
+        
+        return Response({
+            "id": settings.id,
+            "rating_enabled": settings.rating_enabled,
+            "updated_at": settings.updated_at
+        })
 
 class RuleViewSet(viewsets.ModelViewSet):
     queryset = Rule.objects.all()
@@ -15,7 +52,8 @@ class RuleViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def list(self, request, *args, **kwargs):
-        cache_key = "system_rules_list"
+        lang = get_language()
+        cache_key = f"system_rules_list_{lang}"
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -24,17 +62,21 @@ class RuleViewSet(viewsets.ModelViewSet):
         cache.set(cache_key, response.data, 3600) # Cache for 1 hour
         return response
 
+    def _clear_cache(self):
+        for lang, _ in [('uz', 'Uzbek'), ('ru', 'Russian'), ('en', 'English')]:
+            cache.delete(f"system_rules_list_{lang}")
+
     def perform_create(self, serializer):
         serializer.save()
-        cache.delete("system_rules_list")
+        self._clear_cache()
 
     def perform_update(self, serializer):
         serializer.save()
-        cache.delete("system_rules_list")
+        self._clear_cache()
 
     def perform_destroy(self, instance):
         instance.delete()
-        cache.delete("system_rules_list")
+        self._clear_cache()
 
 class TariffViewSet(viewsets.ModelViewSet):
     queryset = Tariff.objects.select_related('company').all()
@@ -46,7 +88,8 @@ class TariffViewSet(viewsets.ModelViewSet):
         return [IsManager()]
 
     def list(self, request, *args, **kwargs):
-        cache_key = "system_tariffs_list"
+        lang = get_language()
+        cache_key = f"system_tariffs_list_{lang}"
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -55,17 +98,21 @@ class TariffViewSet(viewsets.ModelViewSet):
         cache.set(cache_key, response.data, 3600)
         return response
 
+    def _clear_cache(self):
+        for lang, _ in [('uz', 'Uzbek'), ('ru', 'Russian'), ('en', 'English')]:
+            cache.delete(f"system_tariffs_list_{lang}")
+
     def perform_create(self, serializer):
         serializer.save()
-        cache.delete("system_tariffs_list")
+        self._clear_cache()
 
     def perform_update(self, serializer):
         serializer.save()
-        cache.delete("system_tariffs_list")
+        self._clear_cache()
 
     def perform_destroy(self, instance):
         instance.delete()
-        cache.delete("system_tariffs_list")
+        self._clear_cache()
 
     @decorators.action(detail=False, methods=['post'], url_path='remove')
     def remove_tariff(self, request):
