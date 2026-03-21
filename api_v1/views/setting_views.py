@@ -118,6 +118,10 @@ class TariffViewSet(viewsets.ModelViewSet):
     def remove_tariff(self, request):
         company = request.data.get('company')
         name = request.data.get('tariff') or request.data.get('name')
-        Tariff.objects.filter(company__name=company, name=name).delete()
-        cache.delete("system_tariffs_list")
+        from django.db.models import Q
+        Tariff.objects.filter(
+            Q(company__name=company) & 
+            (Q(name=name) | Q(name_uz=name) | Q(name_ru=name) | Q(name_en=name))
+        ).delete()
+        self._clear_cache()
         return Response(status=status.HTTP_204_NO_CONTENT)

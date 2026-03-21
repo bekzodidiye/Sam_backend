@@ -7,7 +7,6 @@ from .base import IsManager, broadcast_data_update, StandardResultsSetPagination
 class DailyReportViewSet(viewsets.ModelViewSet):
     queryset = DailyReport.objects.all()
     serializer_class = DailyReportSerializer
-    pagination_class = StandardResultsSetPagination
 
     def perform_create(self, serializer):
         instance = serializer.save(user=self.request.user)

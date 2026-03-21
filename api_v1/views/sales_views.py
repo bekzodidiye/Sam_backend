@@ -7,7 +7,6 @@ from .base import IsManager, broadcast_data_update, StandardResultsSetPagination
 class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
-    pagination_class = StandardResultsSetPagination
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -66,13 +65,10 @@ class SaleViewSet(viewsets.ModelViewSet):
         broadcast_data_update("USER_UPDATED", data=UserSerializer(user).data)
 
     def get_queryset(self):
-        qs = Sale.objects.select_related('user', 'company', 'tariff').only(
+        return Sale.objects.select_related('user', 'company', 'tariff').only(
             'id', 'user__id', 'user__first_name', 'user__last_name', 
             'company__name', 'count', 'bonus', 'tariff__name', 'date', 'timestamp'
-        )
-        if self.request.user.role == 'manager':
-            return qs.all()
-        return qs.filter(user=self.request.user)
+        ).all()
 
 class SalesLinkViewSet(viewsets.ModelViewSet):
     queryset = SalesLink.objects.all()

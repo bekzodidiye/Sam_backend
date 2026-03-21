@@ -14,12 +14,36 @@ class TariffSerializer(serializers.ModelSerializer):
         ret['company'] = instance.company.name
         return ret
 
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Tariff name cannot be empty")
+        return value.strip()
+
     def create(self, validated_data):
         company_name = validated_data.pop('company')
         company_obj, _ = Company.objects.get_or_create(name=company_name)
+        
+        name = validated_data.get('name')
+        # If 'name' is missing but localized fields are present (due to modeltranslation)
+        if not name:
+            for lang in ['uz', 'ru', 'en']:
+                if validated_data.get(f'name_{lang}'):
+                    name = validated_data[f'name_{lang}']
+                    validated_data['name'] = name
+                    break
+        
+        if not name:
+            raise serializers.ValidationError({"name": "Tariff name is required"})
+
+        # Remove None values for language fields to prevent modeltranslation from overwriting 'name'
+        for lang in ['uz', 'ru', 'en']:
+            field = f'name_{lang}'
+            if field in validated_data and not validated_data[field]:
+                del validated_data[field]
+                
         tariff_obj, _ = Tariff.objects.get_or_create(
             company=company_obj, 
-            name=validated_data.get('name'),
+            name=name,
             defaults=validated_data
         )
         return tariff_obj
